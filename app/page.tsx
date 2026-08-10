@@ -11,6 +11,7 @@ import FeatureButtons from "@/components/FeatureButtons";
 type Message = {
   role: "user" | "assistant";
   content: string;
+  image?: string; // nayi line: image ke liye
 };
 
 export default function Home() {
@@ -19,10 +20,11 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
   async function sendMessage(customText?: string) {
     const text = (customText ?? input).trim();
 
-    if (!text || loading) return;
+    if ((!text && !selectedImage) || loading) return;
 
     const userMessage: Message = {
       role: "user",
@@ -36,34 +38,61 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: updatedMessages,
-        }),
-      });
+      let data;
 
-      const data = await response.json();
+      // AGAR PHOTO UPLOAD HAI TO IMAGE API CALL KARO
+      if (selectedImage) {
+        const formData = new FormData();
+        formData.append("prompt", text || "enhance this image");
+        formData.append("image", selectedImage);
 
-      setMessages((previous) => [
-        ...previous,
-        {
-          role: "assistant",
-          content:
-            data.reply ||
-            "🙏 Radhe Radhe 🙏\nMujhe response nahi mila.",
-        },
-      ]);
+        const response = await fetch("/api/image", {
+          method: "POST",
+          body: formData, // JSON nahi, FormData
+        });
+        data = await response.json();
+
+        // AI ka reply me image bhi add kar do
+        setMessages((previous) => [
+          ...previous,
+          {
+            role: "assistant",
+            content: "Ye rahi aapki edit ki hui image 👇",
+            image: data.image, // base64 image
+          },
+        ]);
+        
+        setSelectedImage(null); // upload clear kar do
+      } 
+      // NAHI TO NORMAL CHAT
+      else {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: updatedMessages,
+          }),
+        });
+
+        data = await response.json();
+
+        setMessages((previous) => [
+          ...previous,
+          {
+            role: "assistant",
+            content:
+              data.reply || "🙏 Radhe Radhe 🙏\nMujhe response nahi mila.",
+          },
+        ]);
+      }
     } catch {
       setMessages((previous) => [
         ...previous,
         {
           role: "assistant",
-          content:
-            "🙏 Radhe Radhe 🙏\nServer se response nahi aa raha.",
+          content: "🙏 Radhe Radhe 🙏\nServer se response nahi aa raha.",
         },
       ]);
     } finally {
@@ -72,18 +101,15 @@ export default function Home() {
   }
 
   function newChat() {
-  setMessages([]);
-  setInput("");
-  setSelectedImage(null);
-}
+    setMessages([]);
+    setInput("");
+    setSelectedImage(null);
+  }
 
   return (
     <main className="flex min-h-screen bg-[#06142f] text-white">
       {sidebarOpen && (
-        <Sidebar
-          onNewChat={newChat}
-          onClose={() => setSidebarOpen(false)}
-        />
+        <Sidebar onNewChat={newChat} onClose={() => setSidebarOpen(false)} />
       )}
 
       <section className="flex min-h-screen flex-1 flex-col">
@@ -101,9 +127,7 @@ export default function Home() {
 
           <div>
             <h2 className="font-semibold">PriyaVRana-Ai</h2>
-            <p className="text-xs text-blue-300">
-              Online • AI Assistant
-            </p>
+            <p className="text-xs text-blue-300">Online • AI Assistant</p>
           </div>
         </header>
 
@@ -114,9 +138,7 @@ export default function Home() {
                 🙏
               </div>
 
-              <h1 className="text-3xl font-bold">
-                Radhe Radhe 🙏
-              </h1>
+              <h1 className="text-3xl font-bold">Radhe Radhe 🙏</h1>
 
               <p className="mt-2 max-w-md text-blue-200">
                 PriyaVRana-Ai mein aapka swagat hai.
@@ -133,10 +155,7 @@ export default function Home() {
               />
             </div>
           ) : (
-            <ChatArea
-              messages={messages}
-              loading={loading}
-            />
+            <ChatArea messages={messages} loading={loading} />
           )}
 
           <ChatInput
