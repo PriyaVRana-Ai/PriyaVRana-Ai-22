@@ -18,7 +18,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   async function sendMessage(customText?: string) {
     const text = (customText ?? input).trim();
 
@@ -72,9 +72,10 @@ export default function Home() {
   }
 
   function newChat() {
-    setMessages([]);
-    setInput("");
-  }
+  setMessages([]);
+  setInput("");
+  setSelectedImage(null);
+}
 
   return (
     <main className="flex min-h-screen bg-[#06142f] text-white">
@@ -143,6 +144,7 @@ export default function Home() {
             loading={loading}
             onChange={setInput}
             onSend={() => sendMessage()}
+            onImageSelect={(file) => setSelectedImage(file)}
           />
         </div>
       </section>
