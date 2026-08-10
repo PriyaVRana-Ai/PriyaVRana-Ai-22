@@ -1,10 +1,12 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import Image from "next/image"; // optional, agar next/image use karna ho
 
 type Message = {
   role: "user" | "assistant";
   content: string;
+  image?: string; // <-- YE NAYI LINE JODI
 };
 
 type ChatAreaProps = {
@@ -31,7 +33,7 @@ export default function ChatArea({
           PriyaVRana-Ai mein aapka swagat hai.
         </p>
 
-        <div className="mt-6 flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-900/30 px-4 py-2 text-sm text-blue-200">
+        <div className="mt-6 flex items-center gap-2 rounded-full border-blue-500/30 bg-blue-900/30 px-4 py-2 text-sm text-blue-200">
           <Sparkles size={16} />
           Aap mujhse kuch bhi pooch sakte hain
         </div>
@@ -59,16 +61,18 @@ export default function ChatArea({
               }`}
             >
               {message.content}
+
+              {/* YE NAYI LINE - IMAGE DIKHANE KE LIYE */}
+              {message.image && (
+                <img 
+                  src={message.image} 
+                  alt="AI generated" 
+                  className="mt-3 rounded-xl max-w-full border border-blue-500/20" 
+                />
+              )}
             </div>
           </div>
         ))}
 
         {loading && (
-          <div className="max-w-fit rounded-2xl border border-blue-500/30 bg-[#0b234d] px-4 py-3 text-blue-200">
-            🙏 Radhe Radhe… soch raha hoon...
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+          <div className="max-w-fit rounded-2xl border-blue-500/30 bg-[#0b234d] px-4 py-3 text-blue-200
