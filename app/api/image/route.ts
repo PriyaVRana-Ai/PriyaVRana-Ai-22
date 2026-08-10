@@ -1,74 +1,71 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json();
+    const formData = await req.formData();
+    const prompt = formData.get("prompt") as string;
+    const imageFile = formData.get("image") as File | null;
 
-    const apiKey = process.env.STABILITY_API_KEY;
+    const apiKey = process.env.STABILITY_API_KEY; // ya STABILITY_KEY
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          error: "STABILITY_API_KEY is not configured.",
-        },
+        { error: "STABILITY_API_KEY is not configured." },
         { status: 500 }
       );
     }
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
-        {
-          error: "Image prompt is required.",
-        },
+        { error: "Image prompt is required." },
         { status: 400 }
       );
     }
 
-    const formData = new FormData();
-    formData.append("prompt", prompt);
-    formData.append("output_format", "png");
+    // Stability AI ke liye naya FormData
+    const stabilityForm = new FormData();
+    stabilityForm.append("prompt", prompt);
+    stabilityForm.append("init_image_mode", "IMAGE_STRENGTH");
+    stabilityForm.append("image_strength", "0.35"); // 0.2 = halka, 0.6 = zyada change
+    stabilityForm.append("output_format", "png");
+
+    // Agar photo upload hui hai to edit karo, nahi to nayi banao
+    if (imageFile) {
+      stabilityForm.append("init_image", imageFile);
+    }
 
     const response = await fetch(
-      "https://api.stability.ai/v2beta/stable-image/generate/core",
+      "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          Accept: "image/*",
+          Accept: "application/json", // v1 endpoint json return karta hai
         },
-        body: formData,
+        body: stabilityForm,
       }
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-
       console.error("Stability error:", errorText);
-
       return NextResponse.json(
-        {
-          error: "Image generation failed.",
-        },
+        { error: "Image generation failed." },
         { status: response.status }
       );
     }
 
-    const imageBuffer = await response.arrayBuffer();
+    const result = await response.json();
+    const base64Image = result.artifacts[0].base64;
 
-    return new Response(imageBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "no-store",
-      },
+    // Frontend ko base64 me bhejte hain taaki direct <img> me lag jaye
+    return NextResponse.json({
+      image: `data:image/png;base64,${base64Image}`,
     });
   } catch (error) {
     console.error("Image API error:", error);
-
     return NextResponse.json(
-      {
-        error: "Something went wrong while generating the image.",
-      },
+      { error: "Something went wrong while generating the image." },
       { status: 500 }
     );
   }
