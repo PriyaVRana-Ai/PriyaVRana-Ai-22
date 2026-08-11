@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
     }
 
     const imageBuffer = await response.arrayBuffer();
-
     const base64Image = Buffer.from(imageBuffer).toString("base64");
 
     return NextResponse.json({
