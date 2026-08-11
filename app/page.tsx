@@ -38,7 +38,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      let data;
+      let data: any;
 
       // AGAR PHOTO UPLOAD HAI TO IMAGE API CALL KARO
       if (selectedImage) {
