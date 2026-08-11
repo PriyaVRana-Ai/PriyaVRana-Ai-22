@@ -1,0 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { prompt } = await req.json();
+    
+    if (!prompt) {
+      return NextResponse.json({ error: "Prompt chahiye" }, { status: 400 });
+    }
+    
+    // Yaha wo pollinations wala link ban raha hai
+    const pollinationUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux`;
+    
+    const response = await fetch(pollinationUrl, {
+      headers: { "User-Agent": "PriyaVRana-Ai" }
+    });
+
+    if (!response.ok) {
+      throw new Error("Pollinations se image nahi aayi");
+    }
+
+    const imageBuffer = await response.arrayBuffer();
+    return new NextResponse(imageBuffer, {
+      headers: { "Content-Type": "image/png" },
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
