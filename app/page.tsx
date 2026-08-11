@@ -158,12 +158,13 @@ export default function Home() {
             <ChatArea messages={messages} loading={loading} />
           )}
 
-          <ChatInput
+                    <ChatInput
             value={input}
             loading={loading}
             onChange={setInput}
             onSend={() => sendMessage()}
             onImageSelect={(file) => setSelectedImage(file)}
+            onImageRemove={() => setSelectedImage(null)}
           />
         </div>
       </section>
