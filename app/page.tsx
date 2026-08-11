@@ -11,7 +11,7 @@ import FeatureButtons from "@/components/FeatureButtons";
 type Message = {
   role: "user" | "assistant";
   content: string;
-  image?: string; // nayi line: image ke liye
+  image?: string;
 };
 
 export default function Home() {
@@ -40,31 +40,45 @@ export default function Home() {
     try {
       let data: any;
 
-      // AGAR PHOTO UPLOAD HAI TO IMAGE API CALL KARO
+      // IMAGE + PROMPT
       if (selectedImage) {
         const formData = new FormData();
-        formData.append("prompt", text || "enhance this image");
+
+        formData.append("prompt", text);
         formData.append("image", selectedImage);
 
         const response = await fetch("/api/image", {
           method: "POST",
-          body: formData, // JSON nahi, FormData
+          body: formData,
         });
+
         data = await response.json();
 
-        // AI ka reply me image bhi add kar do
+        if (!response.ok) {
+          throw new Error(
+            data?.details ||
+              data?.error ||
+              "Image generation failed."
+          );
+        }
+
+        if (!data?.image) {
+          throw new Error("AI ne image return nahi ki.");
+        }
+
         setMessages((previous) => [
           ...previous,
           {
             role: "assistant",
             content: "Ye rahi aapki edit ki hui image 👇",
-            image: data.image, // base64 image
+            image: data.image,
           },
         ]);
-        
-        setSelectedImage(null); // upload clear kar do
-      } 
-      // NAHI TO NORMAL CHAT
+
+        setSelectedImage(null);
+      }
+
+      // NORMAL CHAT
       else {
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -78,21 +92,33 @@ export default function Home() {
 
         data = await response.json();
 
+        if (!response.ok) {
+          throw new Error(
+            data?.error || "Chat response nahi mila."
+          );
+        }
+
         setMessages((previous) => [
           ...previous,
           {
             role: "assistant",
             content:
-              data.reply || "🙏 Radhe Radhe 🙏\nMujhe response nahi mila.",
+              data.reply ||
+              "🙏 Radhe Radhe 🙏\nMujhe response nahi mila.",
           },
         ]);
       }
-    } catch {
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong.";
+
       setMessages((previous) => [
         ...previous,
         {
           role: "assistant",
-          content: "🙏 Radhe Radhe 🙏\nServer se response nahi aa raha.",
+          content: `🙏 Radhe Radhe 🙏\n\n❌ ${message}`,
         },
       ]);
     } finally {
@@ -109,7 +135,10 @@ export default function Home() {
   return (
     <main className="flex min-h-screen bg-[#06142f] text-white">
       {sidebarOpen && (
-        <Sidebar onNewChat={newChat} onClose={() => setSidebarOpen(false)} />
+        <Sidebar
+          onNewChat={newChat}
+          onClose={() => setSidebarOpen(false)}
+        />
       )}
 
       <section className="flex min-h-screen flex-1 flex-col">
@@ -127,7 +156,9 @@ export default function Home() {
 
           <div>
             <h2 className="font-semibold">PriyaVRana-Ai</h2>
-            <p className="text-xs text-blue-300">Online • AI Assistant</p>
+            <p className="text-xs text-blue-300">
+              Online • AI Assistant
+            </p>
           </div>
         </header>
 
@@ -138,7 +169,9 @@ export default function Home() {
                 🙏
               </div>
 
-              <h1 className="text-3xl font-bold">Radhe Radhe 🙏</h1>
+              <h1 className="text-3xl font-bold">
+                Radhe Radhe 🙏
+              </h1>
 
               <p className="mt-2 max-w-md text-blue-200">
                 PriyaVRana-Ai mein aapka swagat hai.
@@ -155,10 +188,13 @@ export default function Home() {
               />
             </div>
           ) : (
-            <ChatArea messages={messages} loading={loading} />
+            <ChatArea
+              messages={messages}
+              loading={loading}
+            />
           )}
 
-                    <ChatInput
+          <ChatInput
             value={input}
             loading={loading}
             onChange={setInput}
