@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, useState } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 import { Mic, Send, X } from "lucide-react";
 import AttachmentButton from "./AttachmentButton";
 
@@ -10,6 +10,7 @@ type ChatInputProps = {
   onChange: (value: string) => void;
   onSend: () => void;
   onImageSelect?: (file: File) => void;
+  onImageRemove?: () => void;
 };
 
 export default function ChatInput({
@@ -18,15 +19,30 @@ export default function ChatInput({
   onChange,
   onSend,
   onImageSelect,
+  onImageRemove,
 }: ChatInputProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  function handleKeyDown(
-    event: KeyboardEvent<HTMLTextAreaElement>
-  ) {
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(selectedImage);
+    setImagePreview(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [selectedImage]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      onSend();
+
+      if (!loading && value.trim()) {
+        onSend();
+      }
     }
   }
 
@@ -37,29 +53,47 @@ export default function ChatInput({
 
   function removeImage() {
     setSelectedImage(null);
+    onImageRemove?.();
   }
 
   return (
     <div className="border-t border-blue-900/50 p-4">
       <div className="mx-auto max-w-3xl">
 
+        {/* IMAGE PREVIEW */}
         {selectedImage && (
-          <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-500/30 bg-[#0b234d] p-2">
-            <div className="flex-1 truncate text-sm text-blue-100">
-              🖼️ {selectedImage.name}
+          <div className="mb-3 rounded-2xl border border-blue-500/40 bg-[#0b234d] p-3 shadow-[0_0_25px_rgba(37,99,235,0.15)]">
+
+            <div className="relative inline-block">
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Selected image"
+                  className="h-28 w-28 rounded-xl object-cover border border-blue-400/40"
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-lg hover:bg-red-500"
+                aria-label="Remove image"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={removeImage}
-              className="rounded-lg p-1 text-blue-300 hover:bg-blue-900/60 hover:text-white"
-              aria-label="Remove image"
-            >
-              <X size={18} />
-            </button>
+            <p className="mt-2 truncate text-xs text-blue-200">
+              {selectedImage.name}
+            </p>
+
+            <p className="mt-1 text-sm font-medium text-yellow-300">
+              ✨ Ab bataiye image ke saath kya karna hai
+            </p>
           </div>
         )}
 
+        {/* INPUT AREA */}
         <div className="flex items-end gap-2 rounded-2xl border border-blue-500/40 bg-[#0b234d] p-2 shadow-[0_0_25px_rgba(37,99,235,0.15)]">
 
           <AttachmentButton
@@ -80,7 +114,11 @@ export default function ChatInput({
             onKeyDown={handleKeyDown}
             rows={1}
             disabled={loading}
-            placeholder="Mujhse kuch bhi poochhein..."
+            placeholder={
+              selectedImage
+                ? "Image ke saath kya karna hai? Prompt likhiye..."
+                : "Mujhse kuch bhi poochhein..."
+            }
             className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-3 text-white outline-none placeholder:text-blue-300 disabled:opacity-50"
           />
 
